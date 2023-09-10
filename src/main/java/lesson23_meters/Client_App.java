@@ -4,6 +4,8 @@ import scn.Input;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +45,7 @@ public class Client_App
             }
         }
         if (logged_in) {
-            int port = 3398;
+            int port = 3498;
             String host = "localhost";
             try (Socket socket = new Socket(host, port)) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -51,13 +53,20 @@ public class Client_App
                 PrintStream writer = new PrintStream(socket.getOutputStream(), true);
                 String type_of_request = "";
                 assert currentAccount != null;
-                while (!type_of_request.equals("4")) {
+                while (!type_of_request.equals("6")) {
                     type_of_request = Input.nextLine("""
                             1.Подписать новый контракт
                             2.Добавить счетчик на имеющийся договор
                             3.Передача показаний
-                            4.Выход
+                            4.Аннулировать договор
+                            5.Удалить счетчик по гомеру договора
+                            6.Выход
                             """);
+                    for (Contract contract : currentAccount.getContracts()) {
+                        for (Meter meter : contract.getMeters()) {
+                            System.out.println(meter.getMeter_num());
+                        }
+                    }
                     switch (type_of_request) {
                         case "1" -> {
                             String service = Input.nextLine("""
@@ -175,24 +184,101 @@ public class Client_App
                                                         + meter.getMeter_num() + ": "));
                                             }
                                         }
-                                        writer.println("3;"
-                                                + currentAccount.getName()
-                                                + ";"
-                                                + currentAccount.getLogin());
-                                        writer.println(contract_num);
-                                        oos.writeObject(meters);
-                                        System.out.println("Ваш запрос отправлен!");
-                                        String signal = reader.readLine();
-                                        if (signal.equals("OK")) {
-                                            System.out.println(reader.readLine());
 
-                                        } else {
-                                            System.out.println(reader.readLine());
-                                        }
                                     } else {
-                                        System.out.println("!23");
+                                        String path_meter_values = Input.nextLine("Введите путь к файлу: ");
+                                        if(!Files.exists(Path.of(path_meter_values))) {
+                                            System.out.println("Файл не найден!");
+                                        } else {
+                                            try (BufferedReader br = new BufferedReader(
+                                                    new FileReader(path_meter_values))) {
+                                               while (br.ready()) {
+                                                   for (Meter meter : meters) {
+                                                       if (meter.getMonth_hour().equals("Month")) {
+                                                           meter.setThis_month(Integer.parseInt(br.readLine()));
+                                                       } else {
+                                                           meter.setTotal_days(Integer.parseInt(br.readLine()));
+                                                           meter.setTotal_nights(Integer.parseInt(br.readLine()));
+                                                       }
+                                                   }
+                                               }
+                                            } catch (Exception e){
+                                                e.printStackTrace();
+                                            }
+                                        }
                                     }
+                                    writer.println("3;"
+                                            + currentAccount.getName()
+                                            + ";"
+                                            + currentAccount.getLogin());
+                                    writer.println(contract_num);
+                                    oos.writeObject(meters);
+                                    System.out.println("Ваш запрос отправлен!");
+                                    String signal = reader.readLine();
+                                    if (signal.equals("OK")) {
+                                        System.out.println(reader.readLine());
 
+                                    } else {
+                                        System.out.println(reader.readLine());
+                                    }
+                                }
+                            }
+                        }
+                        case "4" -> {
+                            String contract_to_delete_num = Input.nextLine("Введите номер договора: ");
+                            Contract contract_to_delete = null;
+                            boolean found = false;
+                            for (Contract contract : currentAccount.getContracts()) {
+                                if (contract.getContract_num().equals(contract_to_delete_num)) {
+                                    contract_to_delete = contract;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                System.out.println("Договор не найден!");
+                            } else {
+                                writer.println("4;" + currentAccount.getName() + ";" + currentAccount.getLogin());
+                                oos.writeObject(contract_to_delete);
+                                System.out.println("Ваш запрос отправлен!");
+                                String signal = reader.readLine();
+                                if (signal.equals("OK")) {
+                                    System.out.println(reader.readLine());
+                                    currentAccount.getContracts().remove(contract_to_delete);
+                                }
+                                else {
+                                    System.out.println(reader.readLine());
+                                }
+                            }
+                        } case "5" -> {
+                            String current_contract_num = Input.nextLine("Введите номер договора: ");
+                            int current_meter_num = Input.nextInt("Введите номер счетчика: ");
+                            Meter current_meter = null;
+                            Contract current_contract = null;
+                            for (Contract contract : currentAccount.getContracts()) {
+                                for (Meter meter : contract.getMeters()) {
+                                    if (meter.getMeter_num() == current_meter_num) {
+                                        current_contract = contract;
+                                        current_meter = meter;
+                                    }
+                                }
+                            }
+                            if (current_meter == null) {
+                                System.out.println("Счетчик не найден!");
+                            } else {
+                                writer.println("5;"
+                                        + currentAccount.getName()
+                                        + ";"
+                                        + currentAccount.getLogin());
+                                writer.println(current_contract_num);
+                                oos.writeObject(current_meter);
+                                System.out.println("Ваш запрос отправлен!");
+                                String signal = reader.readLine();
+                                if (signal.equals("OK")) {
+                                    System.out.println(reader.readLine());
+                                    current_contract.getMeters().remove(current_meter);
+                                } else {
+                                    System.out.println(reader.readLine());
                                 }
                             }
                         }

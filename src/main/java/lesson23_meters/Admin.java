@@ -55,13 +55,20 @@ public class Admin {
             int dayTariff = 1000;
             int nightTariff = 700;
             int monthTariff = 1500;
-            while(!func.equals("5")) {
+            while(!func.equals("4")) {
                 func = Input.nextLine("""
                         1.Выгрузить всех пользователей в формате csv
                         2.Работа с клиентами
                         3.Задать интервал даты для передачи показаний
-                        5.Выход
+                        4.Выход
                         """);
+                for (ClientAccount client : clients) {
+                    for (Contract contract : client.getContracts()) {
+                        for (Meter meter : contract.getMeters()) {
+                            System.out.println(meter.getMeter_num());
+                        }
+                    }
+                }
                 switch (func) {
                     case "1" -> {
                         String contracts_docs_path =
@@ -90,7 +97,7 @@ public class Admin {
                     }
                     case "2" -> {
                         System.out.println("Ожидание...");
-                        int port = 3398;
+                        int port = 3498;
                         try (ServerSocket serverSocket = new ServerSocket(port)) {
                             String exit = "";
                             while (!exit.equals("да")) {
@@ -174,6 +181,35 @@ public class Admin {
                                             } else {
                                                 writer.println("NOT OK");
                                                 writer.println("Данные переданы не в сроки");
+                                            }
+                                        }
+                                        case "4" -> {
+                                            Contract contract_to_delete = (Contract) ois.readObject();
+                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            if (currentClient == null) {
+                                                writer.println("NOT OK");
+                                                writer.println("Произошла ошибка");
+                                            } else {
+                                                currentClient.getContracts().remove(contract_to_delete);
+                                                writer.println("OK");
+                                                writer.println("Договор аннулирован");
+                                            }
+                                        }
+                                        case "5" -> {
+                                            String contract_num = reader.readLine();
+                                            Meter meter_to_delete = (Meter) ois.readObject();
+                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            if (currentClient != null) {
+                                                Contract contract = Functions
+                                                        .find_contract(clients, clientLogin, contract_num);
+                                                assert contract != null;
+                                                if (contract.getMeters().remove(meter_to_delete)) {
+                                                    writer.println("OK");
+                                                    writer.println("Счетчик удален!");
+                                                }
+                                            } else {
+                                                writer.println("NOT OK");
+                                                writer.println("Данные не совпадают!");
                                             }
                                         }
                                     }
