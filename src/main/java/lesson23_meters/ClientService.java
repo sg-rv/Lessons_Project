@@ -7,8 +7,8 @@ import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class Functions {
-    public static ClientAccount find_client(List<ClientAccount> clients, String clientLogin) {
+public class ClientService {
+    public ClientAccount find_client(List<ClientAccount> clients, String clientLogin) {
         for (ClientAccount client : clients) {
             if (client.getLogin().equals(clientLogin)) {
                 return client;
@@ -16,7 +16,7 @@ public class Functions {
         }
         return null;
     }
-    public static Contract find_contract(List<ClientAccount> clients, String clientLogin, String contract_num) {
+    public Contract find_contract(List<ClientAccount> clients, String clientLogin, String contract_num) {
         ClientAccount currentClient = find_client(clients, clientLogin);
         if (currentClient != null) {
             for (Contract contract : currentClient.getContracts()) {
@@ -27,7 +27,7 @@ public class Functions {
         }
         return null;
     }
-    public static void registration(String accounts_path, List<Account> accounts) {
+    public void registration(String accounts_path, List<Account> accounts) {
         String login = "";
         String password = "";
         Pattern login_pattern = Pattern.compile("\\w{6,}");
@@ -54,13 +54,13 @@ public class Functions {
                     new FileOutputStream(accounts_path))) {
                 oos.writeObject(accounts);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         } else {
             System.out.println("Логин занят!");
         }
     }
-    public static void registrationClients(String accounts_path, List<ClientAccount> clients_accounts) {
+    public void registrationClients(String accounts_path, List<ClientAccount> clients_accounts) {
         String mail = "";
         String password = "";
         String name = "";
@@ -89,7 +89,7 @@ public class Functions {
                     new FileOutputStream(accounts_path))) {
                 oos.writeObject(clients_accounts);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         } else {
             System.out.println("Логин занят либо логин или пароль не соответствуют требованиям!");

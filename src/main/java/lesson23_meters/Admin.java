@@ -14,6 +14,7 @@ public class Admin {
         String accounts_path = "D:\\SE\\JavaProjects\\Lessons_Project\\" +
                 "src\\main\\java\\lesson23_meters\\admin_accounts.csv";
         List<Account> accounts = deserialize(accounts_path);
+        ClientService clientService = new ClientService();
         boolean logged_in = false;
         String inp = "";
         Account currentAccount = null;
@@ -24,13 +25,18 @@ public class Admin {
                     3. Выход
                     """);
             if (inp.equals("1")) {
-                Functions.registration(accounts_path,accounts);
+                clientService.registration(accounts_path,accounts);
             } else if (inp.equals("2")) {
                 String login = Input.nextLine("Введите логин: ");
                 String password = Input.nextLine("Введите пароль: ");
-                currentAccount = new Account(login, password);
-                if (accounts.contains(currentAccount)) {
-                    logged_in = true;
+                for (Account account : accounts) {
+                    if(account.getPass().equals(password) && account.getLogin().equals(login)) {
+                        currentAccount = account;
+                        logged_in = true;
+                        break;
+                    }
+                }
+                if (logged_in) {
                     inp = "3";
                 } else {
                     System.out.println("Неверный логин или пароль! ");
@@ -92,7 +98,7 @@ public class Admin {
                                 bw.write(allContract + "\n");
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            System.out.println(e.getMessage());
                         }
                     }
                     case "2" -> {
@@ -120,7 +126,7 @@ public class Admin {
                                     switch (service) {
                                         case "1" -> {
                                             Contract new_contract = (Contract) ois.readObject();
-                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            ClientAccount currentClient = clientService.find_client(clients, clientLogin);
                                             if (currentClient != null) {
                                                 currentClient.getContracts().add(new_contract);
                                             } else {
@@ -136,7 +142,7 @@ public class Admin {
                                         case "2" -> {
                                             String contract_num = reader.readLine();
                                             Meter new_meter = (Meter) ois.readObject();
-                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            ClientAccount currentClient = clientService.find_client(clients, clientLogin);
                                             if (currentClient != null) {
                                                 for (Contract contract : currentClient.getContracts()) {
                                                     if (contract.getContract_num().equals(contract_num)) {
@@ -155,7 +161,7 @@ public class Admin {
                                             if (LocalDate.now().isAfter(start) && LocalDate.now().isBefore(end)) {
                                                 String contract_num = reader.readLine();
                                                 List<Meter> sent_meters = (List<Meter>) ois.readObject();
-                                                Contract currentContract = Functions
+                                                Contract currentContract = clientService
                                                         .find_contract(clients, clientLogin, contract_num);
                                                 if (currentContract != null) {
                                                     List<Meter> meters_of_this_contract = currentContract.getMeters();
@@ -185,7 +191,7 @@ public class Admin {
                                         }
                                         case "4" -> {
                                             Contract contract_to_delete = (Contract) ois.readObject();
-                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            ClientAccount currentClient = clientService.find_client(clients, clientLogin);
                                             if (currentClient == null) {
                                                 writer.println("NOT OK");
                                                 writer.println("Произошла ошибка");
@@ -198,9 +204,9 @@ public class Admin {
                                         case "5" -> {
                                             String contract_num = reader.readLine();
                                             Meter meter_to_delete = (Meter) ois.readObject();
-                                            ClientAccount currentClient = Functions.find_client(clients, clientLogin);
+                                            ClientAccount currentClient = clientService.find_client(clients, clientLogin);
                                             if (currentClient != null) {
-                                                Contract contract = Functions
+                                                Contract contract = clientService
                                                         .find_contract(clients, clientLogin, contract_num);
                                                 assert contract != null;
                                                 if (contract.getMeters().remove(meter_to_delete)) {
@@ -220,31 +226,27 @@ public class Admin {
                                 exit = Input.nextLine("Выйти? ");
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            System.out.println(e.getMessage());
                         }
                     }
                     case "3" -> {
                         int new_start_date = Input.nextInt("Введите новый день начала: ");
                         int new_end_date = Input.nextInt("Введите новый последний день: ");
                         start = LocalDate.of(LocalDate.now().getYear(),
-                                    LocalDate.now().getMonth(),
-                                    new_start_date);
+                                LocalDate.now().getMonth(),
+                                new_start_date);
                         end = LocalDate.of(LocalDate.now().getYear(),
-                                    LocalDate.now().getMonth(),
-                                    new_end_date);
+                                LocalDate.now().getMonth(),
+                                new_end_date);
                     }
                 }
             }
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(client_objects_path))) {
                 oos.writeObject(clients);
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
-    }
-
-    public static void main(String[] args) {
-        new Admin();
     }
 
     static <T> List<T> deserialize(String filePath) {
@@ -254,9 +256,12 @@ public class Admin {
                     new FileInputStream(filePath))) {
                 return (List<T>) oos.readObject();
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
         return new ArrayList<>();
+    }
+    public static void main(String[] args) {
+        new Admin();
     }
 }

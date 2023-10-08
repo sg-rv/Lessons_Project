@@ -15,6 +15,7 @@ public class Client_App
         String accounts_path = "D:\\SE\\JavaProjects\\Lessons_Project\\" +
                 "src\\main\\java\\lesson23_meters\\clients_accounts.csv";
         List<ClientAccount> clients_accounts = deserialize(accounts_path);
+        ClientService clientService = new ClientService();
         boolean logged_in = false;
         String inp = "";
         ClientAccount currentAccount = null;
@@ -25,19 +26,18 @@ public class Client_App
                     3. Выход
                     """);
             if (inp.equals("1")) {
-                Functions.registrationClients(accounts_path,clients_accounts);
+                clientService.registrationClients(accounts_path,clients_accounts);
             } else if (inp.equals("2")) {
-                String mail = Input.nextLine("Введите почту: ");
+                String login = Input.nextLine("Введите логин: ");
                 String password = Input.nextLine("Введите пароль: ");
-                ClientAccount temp = new ClientAccount(mail, password);
-                if (clients_accounts.contains(temp)) {
-                    for (ClientAccount clients_account : clients_accounts) {
-                        if(clients_account.equals(temp)) {
-                            currentAccount = clients_account;
-                            break;
-                        }
+                for (ClientAccount account : clients_accounts) {
+                    if(account.getPass().equals(password) && account.getLogin().equals(login)) {
+                        currentAccount = account;
+                        logged_in = true;
+                        break;
                     }
-                    logged_in = true;
+                }
+                if (logged_in) {
                     inp = "3";
                 } else {
                     System.out.println("Неверный логин или пароль! ");
@@ -52,7 +52,6 @@ public class Client_App
                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
                 PrintStream writer = new PrintStream(socket.getOutputStream(), true);
                 String type_of_request = "";
-                assert currentAccount != null;
                 while (!type_of_request.equals("6")) {
                     type_of_request = Input.nextLine("""
                             1.Подписать новый контракт
@@ -74,20 +73,7 @@ public class Client_App
                                     2.Водоснабжение
                                     """);
                             String contract_num = Input.nextLine("Введите номер нового договора: ");
-                            Contract new_contract = null;
-                            if (service.equals("1")) {
-                                new_contract = new Contract(
-                                        "E"
-                                        + contract_num
-                                        + "_"
-                                        + currentAccount.getName());
-                            } else if (service.equals("2")) {
-                                new_contract = new Contract(
-                                        "W"
-                                        + contract_num
-                                        + "_"
-                                        + currentAccount.getName());
-                            }
+                            Contract new_contract = getNewContract(service, contract_num, currentAccount);
                             if (currentAccount.getContracts().contains(new_contract)) {
                                 System.out.println("Договор уже существует! ");
                             } else {
@@ -192,18 +178,18 @@ public class Client_App
                                         } else {
                                             try (BufferedReader br = new BufferedReader(
                                                     new FileReader(path_meter_values))) {
-                                               while (br.ready()) {
-                                                   for (Meter meter : meters) {
-                                                       if (meter.getMonth_hour().equals("Month")) {
-                                                           meter.setThis_month(Integer.parseInt(br.readLine()));
-                                                       } else {
-                                                           meter.setTotal_days(Integer.parseInt(br.readLine()));
-                                                           meter.setTotal_nights(Integer.parseInt(br.readLine()));
-                                                       }
-                                                   }
-                                               }
+                                                while (br.ready()) {
+                                                    for (Meter meter : meters) {
+                                                        if (meter.getMonth_hour().equals("Month")) {
+                                                            meter.setThis_month(Integer.parseInt(br.readLine()));
+                                                        } else {
+                                                            meter.setTotal_days(Integer.parseInt(br.readLine()));
+                                                            meter.setTotal_nights(Integer.parseInt(br.readLine()));
+                                                        }
+                                                    }
+                                                }
                                             } catch (Exception e){
-                                                e.printStackTrace();
+                                                System.out.println(e.getMessage());
                                             }
                                         }
                                     }
@@ -288,16 +274,35 @@ public class Client_App
                 writer.close();
                 reader.close();
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
         try (ObjectOutputStream oos = new ObjectOutputStream(
                 new FileOutputStream(accounts_path))) {
             oos.writeObject(clients_accounts);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
+
+    private static Contract getNewContract(String service, String contract_num, ClientAccount currentAccount) {
+        Contract new_contract = null;
+        if (service.equals("1")) {
+            new_contract = new Contract(
+                    "E"
+                            + contract_num
+                            + "_"
+                            + currentAccount.getName());
+        } else if (service.equals("2")) {
+            new_contract = new Contract(
+                    "W"
+                            + contract_num
+                            + "_"
+                            + currentAccount.getName());
+        }
+        return new_contract;
+    }
+
     static <T> List<T> deserialize(String filePath) {
         File accounts_file = new File(filePath);
         if (accounts_file.exists()) {
@@ -305,7 +310,7 @@ public class Client_App
                     new FileInputStream(filePath))) {
                 return (List<T>) oos.readObject();
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
         return new ArrayList<>();
